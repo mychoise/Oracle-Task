@@ -1,0 +1,63 @@
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+const sanitizeUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  handle: user.handle,
+  bio: user.bio,
+  github: user.github,
+  avatarUrl: user.avatarUrl,
+  techStack: user.techStack,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});
+export const register = async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: "Name, email, and password are required" });
+    }
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: "Email is already registered" });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({ name, email: email.toLowerCase(), password: hashedPassword });
+    res.status(201).json({ success: true, token: signToken(user._id), data: sanitizeUser(user) });
+  } catch (error) {
+    next(error);
+  }
+};
+export const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+    res.status(200).json({ success: true, token: signToken(user._id), data: sanitizeUser(user) });
+  } catch (error) {
+    next(error);
+  }
+};
+export const me = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    res.status(200).json({ success: true, data: sanitizeUser(user) });
+  } catch (error) {
+    next(error);
+  }
+};
