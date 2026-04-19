@@ -1,6 +1,6 @@
 # Oracle Full Stack Project
 
-Oracle is a full-stack web app with:
+Prisma is a full-stack web app with:
 
 - `client/`: React + Vite frontend (Tailwind, Zustand, Axios)
 - `server/`: Express + MongoDB backend (JWT auth, Cloudinary avatar upload)
